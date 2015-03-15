@@ -150,7 +150,7 @@ do_report(All, Gauges, State) ->
                          MsgGauges,
                          MsgVmMetrics,
                          %% Also graph the number of graphs we're graphing:
-                         "stats.num_stats ", num2str(NumStats), " ", TsStr, "\n"
+                         node_key(), ".stats.num_stats ", num2str(NumStats), " ", TsStr, "\n"
                        ],
             send_to_graphite(FinalMsg, State)
     end.
@@ -161,12 +161,12 @@ do_report_counters(All, TsStr, State) ->
                         KeyS = key2str(Key),
                         Val = Val0 / (State#state.flush_interval/1000),
                         %% Build stats string for graphite
-                        Fragment = [ "stats.counters.", KeyS, " ", 
+                        Fragment = [ node_key(), ".stats.counters.", KeyS, " ", 
                                      io_lib:format("~w", [Val]), " ", 
                                      TsStr, "\n",
 
-                                     "stats.counters.counts.", KeyS, " ", 
-                                     io_lib:format("~w",[NumVals]), " ", 
+                                     node_key(), ".stats.counters.counts.", 
+                                     KeyS, " ", io_lib:format("~w",[NumVals]), " ", 
                                      TsStr, "\n"
                                    ],
                         [ Fragment | Acc ]                    
@@ -189,7 +189,7 @@ do_report_timers(TsStr, State) ->
                 MaxAtThreshold  = lists:nth(NumInThreshold, Values),
                 Mean            = lists:sum(Values1) / NumInThreshold,
                 %% Build stats string for graphite
-                Startl          = [ "stats.timers.", KeyS, "." ],
+                Startl          = [ node_key(), ".stats.timers.", KeyS, "." ],
                 Endl            = [" ", TsStr, "\n"],
                 Fragment        = [ [Startl, Name, " ", num2str(Val), Endl] || {Name,Val} <-
                                   [ {"mean", Mean},
@@ -210,7 +210,7 @@ do_report_gauges(Gauges) ->
                 fun ({Val, TsStr}, KeyAcc) ->
                     %% Build stats string for graphite
                     Fragment = [
-                        "stats.gauges.", KeyS, " ",
+                        node_key(), ".stats.gauges.", KeyS, " ",
                         io_lib:format("~w", [Val]), " ",
                         TsStr, "\n"
                     ],
@@ -225,7 +225,6 @@ do_report_gauges(Gauges) ->
 do_report_vm_metrics(TsStr, State) ->
     case State#state.vm_metrics of
         true ->
-            NodeKey = node_key(),
             {TotalReductions, Reductions} = erlang:statistics(reductions),
             {NumberOfGCs, WordsReclaimed, _} = erlang:statistics(garbage_collection),
             {{input, Input}, {output, Output}} = erlang:statistics(io),
@@ -242,15 +241,15 @@ do_report_vm_metrics(TsStr, State) ->
                         ],
             StatsMsg = lists:map(fun({Key, Val}) ->
                 [
-                 "stats.vm.", NodeKey, ".stats.", key2str(Key), " ",
-                 io_lib:format("~w", [Val]), " ",
+                 node_key(), ".stats.vm.stats.", 
+                 key2str(Key), " ", io_lib:format("~w", [Val]), " ",
                  TsStr, "\n"
                 ]
             end, StatsData),
             MemoryMsg = lists:map(fun({Key, Val}) ->
                 [
-                 "stats.vm.", NodeKey, ".memory.", key2str(Key), " ",
-                 io_lib:format("~w", [Val]), " ",
+                 node_key(), ".stats.vm.memory.", 
+                 key2str(Key), " ", io_lib:format("~w", [Val]), " ",
                  TsStr, "\n"
                 ]
             end, erlang:memory()),
